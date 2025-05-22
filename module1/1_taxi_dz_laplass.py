@@ -11,7 +11,8 @@ n_actions = 6
 n_states = 500
 iterations = 100
 n_trajectories = 100
-q = 0.5
+q = 0.3
+alpha = 0.01
 
 
 def render(env: Env, observation, reward, action):
@@ -47,6 +48,7 @@ class CrossEntropyAgent():
             for state, action in zip(trajectory['states'], trajectory['actions']):
                 new_policy[state][action] += 1
 
+        new_policy += alpha
         for state in range(self.n_states):
             if np.sum(new_policy[state]) > 0:
                 new_policy[state] /= np.sum(new_policy[state])
