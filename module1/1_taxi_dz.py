@@ -2,16 +2,18 @@ import gymnasium as gym
 import time
 import numpy as np
 
+from gymnasium import Env
+
 env = gym.make("Taxi-v3")
 env.action_space.seed(42)
 n_actions = 6
 n_states = 500
-iterations = 1000
+iterations = 100
 n_trajectories = 100
 q = 0.5
 
 
-def render(env, observation, reward, action):
+def render(env: Env, observation, reward, action):
     env.render()
     print("OBSERAVTION: ", observation, " REWARD: ", reward, " ACTION: ", action)
     time.sleep(0.1)
@@ -60,14 +62,14 @@ def get_trajectory(visualize = False):
     observation, info = env.reset()
     trajectory = {'states': [], 'actions': [], 'rewards': []}
     
-    for _ in range(10000):
+    for _ in range(1000):
         action = agent.action(observation)
+        trajectory['states'].append(observation)
         observation, reward, terminated, truncated, info = env.step(action)
         
         if visualize:
             render(env, observation, reward, action)
         
-        trajectory['states'].append(observation)
         trajectory['actions'].append(action)
         trajectory['rewards'].append(reward)
         if terminated or truncated:
@@ -78,6 +80,9 @@ def get_trajectory(visualize = False):
 for j in range(iterations):
     trajectories = [get_trajectory() for _ in range(n_trajectories)]
     agent.fit(trajectories)
+
+env.close()
+env = gym.make("Taxi-v3", render_mode='human')
 
 get_trajectory(True)
 env.close()
