@@ -26,11 +26,12 @@ def render(env: Env, observation, reward, action):
 
 class CrossEntropyAgent():
     
-    def __init__(self, n_actions, n_states, q):
+    def __init__(self, n_actions, n_states, q, alpha):
         self.n_actions = n_actions
         self.n_states = n_states
         self.policy = np.ones((self.n_states, self.n_actions)) / self.n_actions
         self.quantile = q
+        self.alpha = alpha
         
     def action(self, state):
         probs = self.policy[state]
@@ -51,7 +52,7 @@ class CrossEntropyAgent():
             for state, action in zip(trajectory['states'], trajectory['actions']):
                 new_policy[state][action] += 1
 
-        new_policy += alpha
+        new_policy += self.alpha
         for state in range(self.n_states):
             if np.sum(new_policy[state]) > 0:
                 new_policy[state] /= np.sum(new_policy[state])
@@ -61,7 +62,7 @@ class CrossEntropyAgent():
         self.policy = new_policy
         return np.mean(total_rewards)
 
-agent = CrossEntropyAgent(n_actions, n_states, q)
+agent = CrossEntropyAgent(n_actions, n_states, q, alpha)
 
 def get_trajectory(visualize = False):
     observation, info = env.reset()
