@@ -2,6 +2,7 @@ import gymnasium as gym
 import time
 import numpy as np
 
+from matplotlib import pyplot as plt
 from gymnasium import Env
 
 env = gym.make("Taxi-v3")
@@ -37,7 +38,6 @@ class CrossEntropyAgent():
         quantile = np.quantile(total_rewards, self.quantile)
         elite_trajectories = []
         
-        print('Average total: ', np.mean(total_rewards))
         for trajectory, total in zip(trajectories, total_rewards):
             if total > quantile:
                 elite_trajectories.append(trajectory)
@@ -54,7 +54,7 @@ class CrossEntropyAgent():
                 new_policy[state] = self.policy[state].copy()
 
         self.policy = new_policy
-        return None
+        return np.mean(total_rewards)
 
 agent = CrossEntropyAgent(n_actions, n_states, q)
 
@@ -76,13 +76,20 @@ def get_trajectory(visualize = False):
             break
     return trajectory
 
-
+totals = []
 for j in range(iterations):
     trajectories = [get_trajectory() for _ in range(n_trajectories)]
-    agent.fit(trajectories)
+    average_total = agent.fit(trajectories)
+    
+    print('Average total: ', average_total)
+    totals.append(average_total)
+    
+
 
 env.close()
 env = gym.make("Taxi-v3", render_mode='human')
 
+plt.plot(totals)
+plt.show()
 get_trajectory(True)
 env.close()
