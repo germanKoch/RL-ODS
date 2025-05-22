@@ -1,12 +1,15 @@
 import gymnasium as gym
 import time
 import numpy as np
-
+import random
 from matplotlib import pyplot as plt
 from gymnasium import Env
 
 env = gym.make("Taxi-v3")
 env.action_space.seed(42)
+np.random.seed(42)
+random.seed(42)
+
 n_actions = 6
 n_states = 500
 iterations = 100
