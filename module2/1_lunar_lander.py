@@ -19,17 +19,19 @@ torch.manual_seed(42)
 n_actions = 4
 state_dim = 8
 iterations = 500
-n_trajectories = 20
+n_trajectories = 100
 traectory_length = 10000
-q_initial = 0.95
+q_initial = 0.8
 q_final = 0.5
+eps_start = 0.3
+eps_final = 0.01
 
-def get_trajectory():
+def get_trajectory(iter_idx):
     observation, info = env.reset()
     trajectory = {'states': [], 'actions': [], 'rewards': []}
     
     for _ in range(traectory_length):
-        action = agent.action(observation)
+        action = agent.action(observation, iter_idx)
         trajectory['states'].append(observation)
         observation, reward, terminated, truncated, info = env.step(action)
         
@@ -47,7 +49,7 @@ def render(env: Env, observation, reward, action):
 
 class CrossEntropyAgent():
     
-    def __init__(self, n_actions, state_dim, q_initial, q_final, iterations):
+    def __init__(self, n_actions, state_dim, q_initial, q_final, iterations, eps_start, eps_final):
         self.n_actions = n_actions
         self.state_dim = state_dim
         self.q_initial = q_initial
@@ -66,11 +68,19 @@ class CrossEntropyAgent():
         )
         self.optimizer = AdamW(self.network.parameters(), lr=0.001)
         self.loss = nn.CrossEntropyLoss()
+        self.eps_start = 0.3
+        self.eps_final = 0.01
         
-    def action(self, state):
+    def action(self, state, iter_idx):
         state = torch.FloatTensor(state)
         logits = self.network(state)
-        probs = F.softmax(logits, dim=0).detach().numpy()
+        probs_nn = F.softmax(logits, dim=0).detach().numpy()
+        
+        eps = self.current_eps(iter_idx)
+        uniform = np.ones(n_actions) / n_actions
+        probs = (1 - eps) * probs_nn + eps * uniform
+        probs = probs / np.sum(probs)
+        
         return np.random.choice(self.n_actions, p=probs)
     
     def fit(self, trajectories, iter_idx):
@@ -106,12 +116,15 @@ class CrossEntropyAgent():
     def current_quantile(self, iter_idx):
         frac = iter_idx / (self.iterations - 1)
         return self.q_initial * (1 - frac) + self.q_final * frac
+    
+    def current_eps(self, iter_idx):
+        return self.eps_start - (self.eps_start - self.eps_final) * (iter_idx / (self.iterations - 1))
 
-agent = CrossEntropyAgent(n_actions, state_dim, q_initial, q_final, iterations)
+agent = CrossEntropyAgent(n_actions, state_dim, q_initial, q_final, iterations, eps_start, eps_final)
 totals = []
 
 for j in range(iterations):
-    trajectories = [get_trajectory() for _ in range(n_trajectories)]
+    trajectories = [get_trajectory(j) for _ in range(n_trajectories)]
     average_total = agent.fit(trajectories, j)
     
     print('Average total: ', average_total)
@@ -122,8 +135,8 @@ env = gym.make("LunarLander-v3", render_mode="human")
 
 plt.plot(totals)
 plt.show()
-get_trajectory()
-get_trajectory()
-get_trajectory()
-get_trajectory()
+get_trajectory(iter_idx=iterations)
+get_trajectory(iter_idx=iterations)
+get_trajectory(iter_idx=iterations)
+get_trajectory(iter_idx=iterations)
 env.close()
